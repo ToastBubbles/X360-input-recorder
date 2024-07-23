@@ -18,162 +18,120 @@ const stickDeadzone = 0.1;
 const triggerDeadzone = 0.1;
 
 let controllerState = {
-    A: null,
-    B: null,
-    X: null,
-    Y: null,
-    LB: null,
-    RB: null,
-    LT: null,
-    RT: null,
-    BB: null,
-    Start: null,
-    LS: null,
-    RS: null,
-    LSX: null,
-    LSY: null,
-    RSX: null,
-    RSY: null,
-    L: null,
-    R: null,
-    U: null,
-    D: null,
-    init: false
-}
+    A: false,
+    B: false,
+    X: false,
+    Y: false,
+    LB: false,
+    RB: false,
+    LT: 0,
+    RT: 0,
+    BB: false,
+    Start: false,
+    LS: false,
+    RS: false,
+    LSX: 0,
+    LSY: 0,
+    RSX: 0,
+    RSY: 0,
+    L: false,
+    R: false,
+    U: false,
+    D: false
+};
+///Change these to your liking
+const settings = {
+    initiateRecording: 'LB', // Customize this to the desired button for initiating recording
+    stopRecording: 'RB', // Customize this to the desired button for stopping recording
+    leftStickDeadzone: stickDeadzone,
+    rightStickDeadzone: stickDeadzone,
+    leftTriggerDeadzone: triggerDeadzone,
+    rightTriggerDeadzone: triggerDeadzone
+};
 
-
-const comands = [];
+let recording = false;
+const commands = [];
 let lastTimestamp = Date.now();
+let recordingStarted = false;
 
 // Event listener for data
-xbox360Device.on('data', data => {
-    // Interpret data
-    const [reportId, buttons1, buttons2, leftX, leftY, rightX, rightY, leftTrigger, rightTrigger] = data;
-    const normalizeStick = value => (value - 128) / 128.0;
-    const normalizeTrigger = value => value / 255.0;
-    // Buttons1 bitmask interpretation
-    const currentValues = {
-        A: !!(buttons1 & 0x10),
-        B: !!(buttons1 & 0x20),
-        X: !!(buttons1 & 0x40),
-        Y: !!(buttons1 & 0x80),
-        LB: !!(buttons1 & 0x01),
-        RB: !!(buttons1 & 0x02),
-        LT: normalizeTrigger(leftTrigger).toFixed(2),
-        RT: normalizeTrigger(rightTrigger).toFixed(2),
-        BB: !!(buttons1 & 0x04),
-        Start: !!(buttons1 & 0x08),
-        LS: !!(buttons2 & 0x01),
-        RS: !!(buttons2 & 0x02),
-        LSX: normalizeStick(leftX).toFixed(2),
-        LSY: normalizeStick(leftY).toFixed(2),
-        RSX: normalizeStick(rightX).toFixed(2),
-        RSY: normalizeStick(rightY).toFixed(2),
-        L: !!(buttons2 & 0x40),
-        R: !!(buttons2 & 0x80),
-        U: !!(buttons2 & 0x10),
-        D: !!(buttons2 & 0x20),
+xbox360Device.on('data', (data) => {
+    try {
+        // Interpret data
+        const [reportId, buttons1, buttons2, leftX, leftY, rightX, rightY, leftTrigger, rightTrigger] = data;
+        const normalizeStick = value => (value - 128) / 128.0;
+        const normalizeTrigger = value => value / 255.0;
 
-    }
+        const currentValues = {
+            A: !!(buttons1 & 0x10),
+            B: !!(buttons1 & 0x20),
+            X: !!(buttons1 & 0x40),
+            Y: !!(buttons1 & 0x80),
+            LB: !!(buttons1 & 0x01),
+            RB: !!(buttons1 & 0x02),
+            LT: normalizeTrigger(leftTrigger).toFixed(2),
+            RT: normalizeTrigger(rightTrigger).toFixed(2),
+            BB: !!(buttons1 & 0x04),
+            Start: !!(buttons1 & 0x08),
+            LS: !!(buttons2 & 0x01),
+            RS: !!(buttons2 & 0x02),
+            LSX: normalizeStick(leftX).toFixed(2),
+            LSY: normalizeStick(leftY).toFixed(2),
+            RSX: normalizeStick(rightX).toFixed(2),
+            RSY: normalizeStick(rightY).toFixed(2),
+            L: !!(buttons2 & 0x40),
+            R: !!(buttons2 & 0x80),
+            U: !!(buttons2 & 0x10),
+            D: !!(buttons2 & 0x20),
+        };
 
+        const buttonNames = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'BB', 'Start', 'LS', 'RS', 'LSX', 'LSY', 'RSX', 'RSY', 'L', 'R', 'U', 'D'];
 
-
-
-    // const A_BUTTON = !!(buttons1 & 0x10);
-    // const B_BUTTON = !!(buttons1 & 0x20);
-    // const X_BUTTON = !!(buttons1 & 0x40);
-    // const Y_BUTTON = !!(buttons1 & 0x80);
-    // const LEFT_BUMPER = !!(buttons1 & 0x01);
-    // const RIGHT_BUMPER = !!(buttons1 & 0x02);
-    // const BACK_BUTTON = !!(buttons1 & 0x04);
-    // const START_BUTTON = !!(buttons1 & 0x08);
-
-    // Buttons2 bitmask interpretation
-    // const LEFT_STICK_CLICK = !!(buttons2 & 0x01);
-    // const RIGHT_STICK_CLICK = !!(buttons2 & 0x02);
-    // const XBOX_BUTTON = !!(buttons2 & 0x04);
-    // const UP_BUTTON = !!(buttons2 & 0x10);
-    // const DOWN_BUTTON = !!(buttons2 & 0x20);
-    // const LEFT_BUTTON = !!(buttons2 & 0x40);
-    // const RIGHT_BUTTON = !!(buttons2 & 0x80);
-
-    // Analog stick values (normalized to [-1, 1])
-    // const normalizeStick = value => (value - 128) / 128.0;
-    // const LEFT_STICK_X = normalizeStick(leftX).toFixed(2);
-    // const LEFT_STICK_Y = normalizeStick(leftY).toFixed(2);
-    // const RIGHT_STICK_X = normalizeStick(rightX).toFixed(2);
-    // const RIGHT_STICK_Y = normalizeStick(rightY).toFixed(2);
-
-    // Trigger values (normalized to [0, 1])
-    // const normalizeTrigger = value => value / 255.0;
-    // const LEFT_TRIGGER = normalizeTrigger(leftTrigger).toFixed(2);
-    // const RIGHT_TRIGGER = normalizeTrigger(rightTrigger).toFixed(2);
-
-    // if (!controllerState.init) {
-    //     //sets initial values
-    //     controllerState = {
-    //         A: currentValues.A,
-    //         B: currentValues.B,
-    //         X: currentValues.X,
-    //         Y: currentValues.Y,
-    //         LB: currentValues.LB,
-    //         RB: currentValues.RB,
-    //         LT: currentValues.LT,
-    //         RT: currentValues.RT,
-    //         BB: currentValues.BB,
-    //         Start: currentValues.Start,
-    //         LS: currentValues.LS,
-    //         RS: currentValues.RS,
-    //         LSX: currentValues.LSX,
-    //         LSY: currentValues.LSY,
-    //         RSX: currentValues.RSX,
-    //         RSY: currentValues.RSY,
-    //         L: currentValues.L,
-    //         R: currentValues.R,
-    //         U: currentValues.U,
-    //         D: currentValues.D,
-    //         init: true
-    //     }
-    // }
-
-
-
-    ///Change these to your liking
-    const settings = {
-        initiateRecording: LEFT_BUMPER,
-        stopRecording: RIGHT_BUMPER,
-        leftStickDeadzone: stickDeadzone,
-        rightStickDeadzone: stickDeadzone,
-        leftTriggerDeadzone: triggerDeadzone,
-        rightTriggerDeadzone: triggerDeadzone
-    }
-
-
-    const buttonNames = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'BB', 'Start', 'LS', 'RS', 'LSX', 'LSY', 'RSX', 'RSY', 'L', 'R', 'U', 'D'];
-
-    if (!controllerState.init) {
-        // Initialize controller state
-        controllerState = { ...currentValues, init: true };
-    } else {
-        const currentTime = Date.now();
-        const timeDelta = currentTime - lastTimestamp;
-
-        buttonNames.forEach(button => {
-            if (currentValues[button] !== controllerState[button]) {
-                commands.push(`wait(${timeDelta});`);
-                const value = currentValues[button];
-                const buttonValue = value === true ? 100 : (value === false ? 0 : value);
-                commands.push(`setVal(BUTTON_${button}, ${buttonValue});`);
-                lastTimestamp = currentTime;
+        if (currentValues[settings.initiateRecording] && !controllerState[settings.initiateRecording]) {
+            // Only start recording if it was not already started
+            if (!recording) {
+                recording = true;
+                recordingStarted = true;
+                commands.length = 0; // Clear any previous commands
+                lastTimestamp = Date.now();
+                console.log('Recording started.');
             }
-        });
+        }
+
+        // Stop recording logic
+        if (currentValues[settings.stopRecording] && !controllerState[settings.stopRecording]) {
+            // Only stop recording if it was currently recording
+            if (recording) {
+                recording = false;
+                console.log('Recording stopped. Commands:');
+                console.log(commands.join('\n'));
+            }
+        }
+
+        // If recording is active, process data
+        if (recording) {
+            const currentTime = Date.now();
+            const timeDelta = currentTime - lastTimestamp;
+
+            buttonNames.forEach(button => {
+                if (currentValues[button] !== controllerState[button]) {
+                    commands.push(`wait(${timeDelta});`);
+                    const value = currentValues[button];
+                    const buttonValue = value === true ? 100 : (value === false ? 0 : value);
+                    commands.push(`setVal(BUTTON_${button}, ${buttonValue});`);
+                    lastTimestamp = currentTime;
+                }
+            });
+        }
 
         // Update controller state
-        controllerState = { ...currentValues, init: true };
+        controllerState = { ...currentValues };
+
+    } catch (error) {
+        console.error('Error processing data:', error);
     }
-
-
 });
+
 
 // Event listener for error
 xbox360Device.on('error', error => {
